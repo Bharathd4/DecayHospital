@@ -27,7 +27,15 @@ public class PlayerHealth : MonoBehaviour
         if (CurrentHealth <= 0f)
             Die();
     }
+    public void RestoreFullHealth()
+    {
+        if (IsDead)
+            return;
 
+        CurrentHealth = maxHealth;
+
+        Debug.Log("Player health restored: " + CurrentHealth);
+    }
     private void Die()
     {
         if (IsDead)

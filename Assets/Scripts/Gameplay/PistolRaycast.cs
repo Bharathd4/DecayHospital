@@ -8,6 +8,13 @@ public class PistolRaycast : MonoBehaviour
     [SerializeField] private float range = 100f;
     [SerializeField] public float shotsPerSecond = 4f;
 
+    [Header("Weapon Animation")]
+    [SerializeField] private Animator weaponAnimator;
+    private static readonly int FireHash =
+        Animator.StringToHash("Fire");
+
+    [SerializeField] private ParticleSystem muzzleFlash;
+
     [Header("Testing")]
     [SerializeField] private bool logMisses = false;
 
@@ -15,9 +22,15 @@ public class PistolRaycast : MonoBehaviour
 
     private void Update()
     {
-        // Left mouse button fires the pistol on PC.
+        // PC left-click shooting
         if (Input.GetMouseButtonDown(0))
-            TryFire();
+            Fire();
+    }
+
+    // Called by the mobile Fire button
+    public void Fire()
+    {
+        TryFire();
     }
 
     private void TryFire()
@@ -25,13 +38,17 @@ public class PistolRaycast : MonoBehaviour
         if (Time.time < nextFireTime)
             return;
 
-        nextFireTime = Time.time + 1f / Mathf.Max(0.1f, shotsPerSecond);
+        nextFireTime = Time.time +
+                       1f / Mathf.Max(0.1f, shotsPerSecond);
+
+        if (weaponAnimator != null)
+            weaponAnimator.SetTrigger(FireHash);
 
         Ray ray = new Ray(transform.position, transform.forward);
 
         if (Physics.Raycast(ray, out RaycastHit hit, range,
-                            Physics.DefaultRaycastLayers,
-                            QueryTriggerInteraction.Ignore))
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore))
         {
             ZombieHealth zombie =
                 hit.collider.GetComponentInParent<ZombieHealth>();
@@ -51,5 +68,8 @@ public class PistolRaycast : MonoBehaviour
         {
             Debug.Log("Pistol missed: no collider in range.");
         }
+
+        if (muzzleFlash != null)
+            muzzleFlash.Play(true);
     }
 }
