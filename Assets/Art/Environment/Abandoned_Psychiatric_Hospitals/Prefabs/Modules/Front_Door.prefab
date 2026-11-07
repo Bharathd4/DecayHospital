@@ -411,7 +411,7 @@ GameObject:
   - component: {fileID: 4722721465037628556}
   - component: {fileID: 8536251447575706642}
   - component: {fileID: 8536251447575706641}
-  - component: {fileID: 8536251447575706640}
+  - component: {fileID: 8048173567530897838}
   m_Layer: 0
   m_Name: Door_LOD0
   m_TagString: Untagged
@@ -536,7 +536,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.16297744, y: 2.2282903, z: 1.134145}
   m_Center: {x: 0.022169089, y: 1.1141452, z: -0.5567266}
---- !u!114 &8536251447575706640
+--- !u!114 &8048173567530897838
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -545,12 +545,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3513935463710141254}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4162366dd8f897d4da8955cfc0504b1a, type: 3}
+  m_Script: {fileID: 11500000, guid: d0a06e77ba839f44fafd1cee7659416f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Door
   smooth: 2
   DoorOpenAngle: 90
-  txt: {fileID: 0}
 --- !u!1 &3761783716334711920
 GameObject:
   m_ObjectHideFlags: 0
@@ -895,7 +894,6 @@ GameObject:
   - component: {fileID: 4010030656369864561}
   - component: {fileID: 1796861867531008397}
   - component: {fileID: 1148917188169556582}
-  - component: {fileID: 5511995615623874231}
   m_Layer: 0
   m_Name: Front_Door
   m_TagString: Untagged
@@ -1031,23 +1029,6 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &5511995615623874231
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8842732823864722106}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e149dc7dafe063047b209aad2d1d88c4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkDoorController
-  ShowTopMostFoldoutHeaderGroup: 1
-  leftDoor: {fileID: 0}
-  rightDoor: {fileID: 0}
-  openAngle: 90
-  smooth: 2
 --- !u!1 &8875798423765911150
 GameObject:
   m_ObjectHideFlags: 0

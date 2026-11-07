@@ -1,0 +1,5 @@
+C:/Unity/DecayHospital/.utmp/RelWithDebInfo/4y1a4b2h/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Unity/DecayHospital/.utmp/RelWithDebInfo/4y1a4b2h/arm64-v8a/CMakeFiles/rebuild_cache.dir
+C:/Unity/DecayHospital/.utmp/RelWithDebInfo/4y1a4b2h/arm64-v8a/GameActivity/CMakeFiles/game.dir
+C:/Unity/DecayHospital/.utmp/RelWithDebInfo/4y1a4b2h/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+C:/Unity/DecayHospital/.utmp/RelWithDebInfo/4y1a4b2h/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir

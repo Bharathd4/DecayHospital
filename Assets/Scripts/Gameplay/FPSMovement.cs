@@ -17,6 +17,12 @@ public class FPSMovement : MonoBehaviour
     public float touchSensitivity = 0.12f;
     public float lookLimit = 80f;
 
+    [Header("Weapon Animation")]
+    [SerializeField] private Animator weaponAnimator;
+
+    private static readonly int IsWalkingHash =
+        Animator.StringToHash("IsWalking");
+
     private CharacterController controller;
     private float verticalVelocity;
     private float pitch;
@@ -49,6 +55,7 @@ public class FPSMovement : MonoBehaviour
         HandleMovement();
         HandleCameraLook();
         HandleCursor();
+        UpdateWalkingAnimation();
     }
 
     private void HandleMovement()
@@ -93,9 +100,26 @@ public class FPSMovement : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
+    private void UpdateWalkingAnimation()
+    {
+        if (weaponAnimator == null ||
+            !weaponAnimator.isActiveAndEnabled)
+            return;
+
+        bool keyboardWalking =
+            Input.GetKey(KeyCode.W) ||
+            Input.GetKey(KeyCode.A) ||
+            Input.GetKey(KeyCode.S) ||
+            Input.GetKey(KeyCode.D);
+
+        bool isWalking =
+            keyboardWalking && controller.isGrounded;
+
+        weaponAnimator.SetBool(IsWalkingHash, isWalking);
+    }
+
     private void HandleCameraLook()
     {
-        // Mobile right-side touch rotation
         Vector2 touchDelta =
             MobileLookAreaTouch.ConsumeLookDelta();
 
@@ -107,7 +131,6 @@ public class FPSMovement : MonoBehaviour
             );
         }
 
-        // Existing PC mouse rotation
         if (Cursor.lockState == CursorLockMode.Locked)
         {
             float mouseX =

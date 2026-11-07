@@ -5,6 +5,7 @@ public class MenuController : MonoBehaviour
 {
     [Header("Panels")]
     public GameObject introPanel;
+    public GameObject overviewPanel;
     public GameObject modeSelectionPanel;
     public GameObject multiplayerPanel;
 
@@ -21,11 +22,11 @@ public class MenuController : MonoBehaviour
     private void Start()
     {
         introPanel.SetActive(true);
+        overviewPanel.SetActive(false);
         modeSelectionPanel.SetActive(false);
         multiplayerPanel.SetActive(false);
 
         Time.timeScale = 0f;
-
         SetGameplayActive(false);
         SetMobileControls(false);
     }
@@ -37,23 +38,19 @@ public class MenuController : MonoBehaviour
              Input.anyKeyDown ||
              Input.touchCount > 0))
         {
-            ShowModeSelection();
+            ShowOverview();
         }
     }
 
     private void SetGameplayActive(bool active)
     {
-        if (player != null)
-            player.SetActive(active);
-
-        if (zombie != null)
-            zombie.SetActive(active);
+        if (player != null) player.SetActive(active);
+        if (zombie != null) zombie.SetActive(active);
     }
 
     private void SetMobileControls(bool show)
     {
-        if (mobileControls == null)
-            return;
+        if (mobileControls == null) return;
 
         bool platformAllowed =
             Application.isMobilePlatform ||
@@ -62,26 +59,34 @@ public class MenuController : MonoBehaviour
         mobileControls.SetActive(show && platformAllowed);
     }
 
-    public void ShowModeSelection()
+    public void ShowOverview()
     {
         introPanel.SetActive(false);
-        modeSelectionPanel.SetActive(true);
+        overviewPanel.SetActive(true);
+    }
 
-        SetMobileControls(false);
+    public void ContinueToModeSelection()
+    {
+        overviewPanel.SetActive(false);
+        modeSelectionPanel.SetActive(true);
+    }
+
+    public void ShowModeSelection()
+    {
+        ShowOverview();
     }
 
     public void PlaySinglePlayer()
     {
         introPanel.SetActive(false);
+        overviewPanel.SetActive(false);
         modeSelectionPanel.SetActive(false);
         multiplayerPanel.SetActive(false);
 
         Time.timeScale = 1f;
-
         SetGameplayActive(true);
 
-        if (crosshair != null)
-            crosshair.SetActive(true);
+        if (crosshair != null) crosshair.SetActive(true);
 
         Door.OpenAllDoors();
 
@@ -96,27 +101,51 @@ public class MenuController : MonoBehaviour
 
     public void OpenMultiplayer()
     {
-        Debug.Log("Opening Co-op Multiplayer");
-
         Time.timeScale = 1f;
-
         SetMobileControls(false);
 
-        if (crosshair != null)
-            crosshair.SetActive(false);
+        if (crosshair != null) crosshair.SetActive(false);
 
         modeSelectionPanel.SetActive(false);
         multiplayerPanel.SetActive(true);
-
         SetGameplayActive(false);
     }
 
     public void BackToIntro()
     {
+        overviewPanel.SetActive(false);
         modeSelectionPanel.SetActive(false);
         multiplayerPanel.SetActive(false);
         introPanel.SetActive(true);
 
         SetMobileControls(false);
+    }
+
+    public void BackToMainMenu()
+    {
+        overviewPanel.SetActive(false);
+        introPanel.SetActive(true);
+    }
+
+    public void ExitGameplayToMainMenu()
+    {
+        Time.timeScale = 0f;
+
+        if (waveManager != null)
+            waveManager.StopAllCoroutines();
+
+        SetGameplayActive(false);
+        SetMobileControls(false);
+
+        if (crosshair != null)
+            crosshair.SetActive(false);
+
+        multiplayerPanel.SetActive(false);
+        modeSelectionPanel.SetActive(false);
+        overviewPanel.SetActive(false);
+        introPanel.SetActive(true);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }

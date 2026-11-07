@@ -2,6 +2,7 @@
 using Unity.Netcode;
 using System.Collections;
 using UnityEngine;
+using TMPro;
 
 public class WaveManager : NetworkBehaviour
 {
@@ -26,15 +27,38 @@ public class WaveManager : NetworkBehaviour
     public int points = 0;
     public int completedWaves = 0;
 
+    [Header("Victory Screen")]
+    [SerializeField] private GameObject victoryPanel;
+    [SerializeField] private TMP_Text wavesCompletedText;
+    [SerializeField] private TMP_Text zombiesEliminatedText;
+    [SerializeField] private TMP_Text finalScoreText;
+
+    [Header("Main Menu Navigation")]
+    [SerializeField] private GameObject mainMenuPanel;
+    [SerializeField] private GameObject modeSelectionPanel;
+    [SerializeField] private GameObject multiplayerPanel;
+
+    [SerializeField] private float autoReturnDelay = 30f;
+
     private int zombiesToSpawn;
     private bool spawning;
     private bool gameWon;
     private bool soloStarted;
     private bool coOpStarted;
+    private bool victoryShown;
+
+    private Coroutine returnTimer;
 
     // Wave announcement
     private int lastAnnouncedWave = 0;
     private float announcementEndTime = 0f;
+
+    // HUD styles
+    private GUIStyle hudStyle;
+    private GUIStyle headingStyle;
+    private GUIStyle waveStyle;
+    private GUIStyle healthStyle;
+    private bool stylesInitialized;
 
     // CO-OP network variables
     private NetworkVariable<int> netWave =
@@ -51,7 +75,6 @@ public class WaveManager : NetworkBehaviour
 
     private NetworkVariable<int> netCompletedWaves =
         new NetworkVariable<int>(0);
-
 
     // ---------------- INITIALIZATION ----------------
 
@@ -78,9 +101,18 @@ public class WaveManager : NetworkBehaviour
             return;
         }
 
+        if (victoryPanel != null)
+            victoryPanel.SetActive(false);
+
         Debug.Log(
             "WaveManager ready. Waiting for game mode selection."
         );
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     private void Update()
@@ -92,7 +124,6 @@ public class WaveManager : NetworkBehaviour
             announcementEndTime = Time.time + 2.5f;
         }
     }
-
 
     // ---------------- NETWORK INITIALIZATION ----------------
 
@@ -115,7 +146,6 @@ public class WaveManager : NetworkBehaviour
         netPoints.OnValueChanged -= OnPointsChanged;
         netCompletedWaves.OnValueChanged -= OnCompletedWavesChanged;
     }
-
 
     // ---------------- SOLO MODE ----------------
 
@@ -142,6 +172,10 @@ public class WaveManager : NetworkBehaviour
         completedWaves = 0;
 
         gameWon = false;
+        victoryShown = false;
+
+        if (victoryPanel != null)
+            victoryPanel.SetActive(false);
 
         StartCoroutine(SoloWaveRoutine());
 
@@ -192,6 +226,12 @@ public class WaveManager : NetworkBehaviour
         gameWon = true;
 
         Debug.Log("SOLO SURVIVAL COMPLETE!");
+
+        ShowVictoryScreen(
+            completedWaves,
+            totalKills,
+            points
+        );
     }
 
     private void SpawnSoloZombie()
@@ -253,7 +293,6 @@ public class WaveManager : NetworkBehaviour
         );
     }
 
-
     // ---------------- CO-OP MODE ----------------
 
     public void StartCoOpWaves()
@@ -281,6 +320,7 @@ public class WaveManager : NetworkBehaviour
 
         coOpStarted = true;
         gameWon = false;
+        victoryShown = false;
 
         netWave.Value = 0;
         netAlive.Value = 0;
@@ -289,6 +329,9 @@ public class WaveManager : NetworkBehaviour
         netCompletedWaves.Value = 0;
 
         completedWaves = 0;
+
+        if (victoryPanel != null)
+            victoryPanel.SetActive(false);
 
         StartCoroutine(CoOpWaveRoutine());
 
@@ -338,13 +381,36 @@ public class WaveManager : NetworkBehaviour
         gameWon = true;
 
         Debug.Log("ALL CO-OP WAVES COMPLETED!");
+
+        ShowCoOpVictoryClientRpc(
+            netCompletedWaves.Value,
+            netKills.Value,
+            netPoints.Value
+        );
+    }
+
+    [ClientRpc]
+    private void ShowCoOpVictoryClientRpc(
+        int waves,
+        int kills,
+        int score)
+    {
+        gameWon = true;
+
+        completedWaves = waves;
+        totalKills = kills;
+        points = score;
+
+        ShowVictoryScreen(waves, kills, score);
     }
 
     [ClientRpc]
     private void RestorePlayersHealthClientRpc()
     {
         PlayerHealth[] players =
-            FindObjectsByType<PlayerHealth>();
+            FindObjectsByType<PlayerHealth>(
+                FindObjectsSortMode.None
+            );
 
         foreach (PlayerHealth player in players)
         {
@@ -423,6 +489,107 @@ public class WaveManager : NetworkBehaviour
         );
     }
 
+    // ---------------- VICTORY SCREEN ----------------
+
+    private void ShowVictoryScreen(
+        int waves,
+        int kills,
+        int score)
+    {
+        if (victoryShown)
+            return;
+
+        victoryShown = true;
+
+        if (victoryPanel != null)
+            victoryPanel.SetActive(true);
+        else
+            Debug.LogWarning(
+                "Victory Panel is not assigned in WaveManager."
+            );
+
+        if (wavesCompletedText != null)
+        {
+            wavesCompletedText.text =
+                "Waves Completed: " + waves + "/" + zombiesPerWave.Length;
+        }
+
+        if (zombiesEliminatedText != null)
+        {
+            zombiesEliminatedText.text =
+                "Total Zombies Eliminated: " + kills;
+        }
+
+        if (finalScoreText != null)
+        {
+            finalScoreText.text =
+                "Final Score: " + score;
+        }
+
+        // Stop local player movement.
+        FPSMovement movement =
+            FindFirstObjectByType<FPSMovement>();
+
+        if (movement != null)
+            movement.enabled = false;
+
+        // Stop local pistol firing.
+        PistolRaycast pistol =
+            FindFirstObjectByType<PistolRaycast>();
+
+        if (pistol != null)
+            pistol.enabled = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        if (returnTimer != null)
+            StopCoroutine(returnTimer);
+
+        returnTimer = StartCoroutine(AutoReturnToMainMenu());
+
+        Debug.Log("Victory screen displayed.");
+    }
+
+    private IEnumerator AutoReturnToMainMenu()
+    {
+        yield return new WaitForSecondsRealtime(autoReturnDelay);
+
+        ReturnToMainMenu();
+    }
+
+    public void ReturnToMainMenu()
+    {
+        if (returnTimer != null)
+        {
+            StopCoroutine(returnTimer);
+            returnTimer = null;
+        }
+
+        // Shut down the network session when returning from CO-OP.
+        if (NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        if (victoryPanel != null)
+            victoryPanel.SetActive(false);
+
+        if (modeSelectionPanel != null)
+            modeSelectionPanel.SetActive(false);
+
+        if (multiplayerPanel != null)
+            multiplayerPanel.SetActive(false);
+
+        if (mainMenuPanel != null)
+            mainMenuPanel.SetActive(true);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        Debug.Log("Returned to Main Menu.");
+    }
 
     // ---------------- SHARED HELPERS ----------------
 
@@ -460,7 +627,6 @@ public class WaveManager : NetworkBehaviour
         ];
     }
 
-
     // ---------------- NETWORK VALUE REFRESH ----------------
 
     private void RefreshNetworkValues()
@@ -497,67 +663,162 @@ public class WaveManager : NetworkBehaviour
         completedWaves = newValue;
     }
 
+    // ---------------- HUD STYLES ----------------
 
-    // ---------------- HUD AND ANNOUNCEMENT ----------------
+    private void InitializeHUDStyles()
+    {
+        if (stylesInitialized)
+            return;
+
+        hudStyle = new GUIStyle(GUI.skin.label);
+        hudStyle.fontSize = 20;
+        hudStyle.fontStyle = FontStyle.Bold;
+        hudStyle.normal.textColor = Color.white;
+
+        headingStyle = new GUIStyle(GUI.skin.label);
+        headingStyle.fontSize = 23;
+        headingStyle.fontStyle = FontStyle.Bold;
+        headingStyle.normal.textColor = Color.yellow;
+
+        waveStyle = new GUIStyle(GUI.skin.label);
+        waveStyle.fontSize = 48;
+        waveStyle.fontStyle = FontStyle.Bold;
+        waveStyle.alignment = TextAnchor.MiddleCenter;
+        waveStyle.normal.textColor = Color.yellow;
+
+        healthStyle = new GUIStyle(GUI.skin.label);
+        healthStyle.fontSize = 20;
+        healthStyle.fontStyle = FontStyle.Bold;
+
+        stylesInitialized = true;
+    }
+
+    // ---------------- IN-GAME HUD ----------------
+
 
     private void OnGUI()
     {
-        // SOLO: show after solo mode starts.
         bool soloGameActive = soloStarted;
-
-        // CO-OP: show after the networked first wave starts.
-        bool coOpGameActive =
-            IsSpawned && netWave.Value > 0;
+        bool coOpGameActive = IsSpawned && netWave.Value > 0;
 
         if (!soloGameActive && !coOpGameActive)
             return;
 
-        int displayWave =
-            coOpGameActive ? netWave.Value : currentWave;
+        if (victoryShown)
+            return;
 
-        int displayZombies =
-            coOpGameActive ? netAlive.Value : zombiesAlive;
+        InitializeHUDStyles();
 
-        int displayKills =
-            coOpGameActive ? netKills.Value : totalKills;
+        int displayWave = coOpGameActive ? netWave.Value : currentWave;
+        int displayZombies = coOpGameActive ? netAlive.Value : zombiesAlive;
+        int displayKills = coOpGameActive ? netKills.Value : totalKills;
+        int displayPoints = coOpGameActive ? netPoints.Value : points;
 
-        int displayPoints =
-            coOpGameActive ? netPoints.Value : points;
+        GUI.Box(new Rect(10, 10, 310, 255), "");
 
         GUI.Label(
-            new Rect(20, 60, 400, 30),
-            $"WAVE: {displayWave}/{zombiesPerWave.Length}"
+            new Rect(25, 18, 285, 32),
+            "DECAY - SURVIVAL STATUS",
+            headingStyle
         );
 
         GUI.Label(
-            new Rect(20, 90, 400, 30),
-            $"ZOMBIES: {displayZombies}"
+            new Rect(25, 55, 280, 28),
+            "WAVE: " + displayWave + "/" + zombiesPerWave.Length,
+            hudStyle
         );
 
         GUI.Label(
-            new Rect(20, 120, 400, 30),
-            $"KILLS: {displayKills}   POINTS: {displayPoints}"
+            new Rect(25, 85, 280, 28),
+            "ZOMBIES LEFT: " + displayZombies,
+            hudStyle
         );
 
-        if (gameWon)
+        GUI.Label(
+            new Rect(25, 115, 280, 28),
+            "KILLS: " + displayKills,
+            hudStyle
+        );
+
+        GUI.Label(
+            new Rect(25, 145, 280, 28),
+            "SCORE: " + displayPoints,
+            hudStyle
+        );
+
+        // Local player's health
+        PlayerHealth playerHealth =
+            FindFirstObjectByType<PlayerHealth>();
+
+        if (playerHealth != null)
         {
+            float healthPercent =
+                playerHealth.maxHealth > 0
+                ? playerHealth.CurrentHealth / playerHealth.maxHealth
+                : 0f;
+
+            healthStyle.normal.textColor =
+                healthPercent <= 0.25f ? Color.red :
+                healthPercent <= 0.5f ? Color.yellow :
+                Color.green;
+
             GUI.Label(
-                new Rect(20, 160, 400, 40),
-                "ALL WAVES COMPLETED!"
+                new Rect(25, 175, 280, 28),
+                "HEALTH: " +
+                Mathf.CeilToInt(playerHealth.CurrentHealth) +
+                "/" +
+                Mathf.CeilToInt(playerHealth.maxHealth),
+                healthStyle
             );
         }
 
-        // Highlighted wave-start announcement.
+        // Correct weapon ammunition for each game mode
+        if (coOpGameActive)
+        {
+            CoOpPistolRaycast pistol =
+                CoOpPistolRaycast.LocalInstance;
+
+            if (pistol != null)
+            {
+                string ammoStatus = pistol.IsReloading
+                    ? "RELOADING..."
+                    : "AMMO: " + pistol.CurrentAmmo +
+                      " / " + pistol.ReserveAmmo;
+
+                GUI.Label(
+                    new Rect(25, 205, 280, 28),
+                    ammoStatus,
+                    hudStyle
+                );
+            }
+            else
+            {
+                GUI.Label(
+                    new Rect(25, 205, 280, 28),
+                    "AMMO: CONNECTING...",
+                    hudStyle
+                );
+            }
+        }
+        else
+        {
+            PistolRaycast pistol =
+                FindFirstObjectByType<PistolRaycast>();
+
+            if (pistol != null)
+            {
+                GUI.Label(
+                    new Rect(25, 205, 280, 28),
+                    "AMMO: " + pistol.CurrentAmmo +
+                    " / " + pistol.ReserveAmmo,
+                    hudStyle
+                );
+            }
+        }
+
+        // Wave announcement
         if (Time.time < announcementEndTime)
         {
-            GUIStyle waveStyle =
-                new GUIStyle(GUI.skin.label);
-
-            waveStyle.fontSize = 48;
-            waveStyle.fontStyle = FontStyle.Bold;
-            waveStyle.alignment = TextAnchor.MiddleCenter;
-            waveStyle.normal.textColor = Color.yellow;
-
             GUI.Label(
                 new Rect(
                     0,
@@ -570,4 +831,6 @@ public class WaveManager : NetworkBehaviour
             );
         }
     }
+
 }
+

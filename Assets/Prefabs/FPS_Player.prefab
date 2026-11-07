@@ -2404,8 +2404,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7822018379051903459}
   - {fileID: 1883938544562665789}
+  - {fileID: 7822018379051903459}
   m_Father: {fileID: 294847171906409983}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &5442420986042076134
@@ -2566,6 +2566,11 @@ MonoBehaviour:
   damage: 25
   range: 100
   shotsPerSecond: 4
+  magazineCapacity: 12
+  startingReserveAmmo: 24
+  maxReserveAmmo: 60
+  reloadDuration: 1.5
+  ammoText: {fileID: 0}
   weaponAnimator: {fileID: 6996786144894385653}
   muzzleFlash: {fileID: 2968899187697173547}
   logMisses: 0
@@ -2660,8 +2665,7 @@ GameObject:
   - component: {fileID: 8187246623282181096}
   - component: {fileID: 6342656695276962097}
   - component: {fileID: 6503764436119073603}
-  - component: {fileID: 6878516496307166584}
-  - component: {fileID: 878268635899759975}
+  - component: {fileID: 3719411555202836049}
   m_Layer: 0
   m_Name: FPS_Player
   m_TagString: Untagged
@@ -2722,13 +2726,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71274207a2f8236478ba0db04eaf71f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FPSMovement
-  moveSpeed: 3.5
+  moveSpeed: 2.5
   gravity: -20
-  jumpHeight: 1.5
+  jumpHeight: 1
   cameraHolder: {fileID: 294847171906409983}
   mouseSensitivity: 2
   touchSensitivity: 0.12
   lookLimit: 80
+  weaponAnimator: {fileID: 6996786144894385653}
 --- !u!114 &8135892087140611703
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2844,8 +2849,8 @@ MonoBehaviour:
   playerCamera: {fileID: 5442420986042076134}
   movement: {fileID: 6821931504691572922}
   shooting: {fileID: 2322440813935719625}
-  coOpShooting: {fileID: 6878516496307166584}
---- !u!114 &6878516496307166584
+  coOpShooting: {fileID: 3719411555202836049}
+--- !u!114 &3719411555202836049
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2861,26 +2866,13 @@ MonoBehaviour:
   damage: 25
   range: 100
   shotsPerSecond: 4
+  magazineCapacity: 12
+  startingReserveAmmo: 24
+  maxReserveAmmo: 60
+  reloadDuration: 1.5
+  playerCamera: {fileID: 0}
   weaponAnimator: {fileID: 6996786144894385653}
   muzzleFlash: {fileID: 2968899187697173547}
---- !u!114 &878268635899759975
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5421436894364582885}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11f65c2ad4af94044ba4f18411b3f036, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PistolRaycast
-  damage: 25
-  range: 100
-  shotsPerSecond: 4
-  weaponAnimator: {fileID: 6996786144894385653}
-  muzzleFlash: {fileID: 2968899187697173547}
-  logMisses: 0
 --- !u!1 &8063078536905291254
 GameObject:
   m_ObjectHideFlags: 0
@@ -3009,20 +3001,28 @@ PrefabInstance:
       value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -3051,6 +3051,10 @@ PrefabInstance:
     - target: {fileID: 2418137116623094498, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6100343510052166031, guid: 74c48612df7525441b6350979a4b1f46, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3.7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

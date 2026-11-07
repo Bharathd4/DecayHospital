@@ -8,19 +8,21 @@ public class CoOpZombieHealth : NetworkBehaviour
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private int killReward = 100;
 
+    [Header("Kill Rewards")]
+    [SerializeField] private float healthReward = 15f;
+    [SerializeField] private int ammoReward = 3;
+
     private NetworkVariable<float> currentHealth =
         new NetworkVariable<float>(
             100f,
             NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server
-        );
+            NetworkVariableWritePermission.Server);
 
     private NetworkVariable<bool> isDead =
         new NetworkVariable<bool>(
             false,
             NetworkVariableReadPermission.Everyone,
-            NetworkVariableWritePermission.Server
-        );
+            NetworkVariableWritePermission.Server);
 
     public float CurrentHealth => currentHealth.Value;
     public float MaxHealth => maxHealth;
@@ -45,26 +47,24 @@ public class CoOpZombieHealth : NetworkBehaviour
         currentHealth.Value = maxHealth;
     }
 
-    public void TakeDamage(float damage)
+    public void TakeDamage(float damage, ulong attackerClientId)
     {
         if (!IsServer || isDead.Value || damage <= 0f)
             return;
 
         currentHealth.Value = Mathf.Max(
             0f,
-            currentHealth.Value - damage
-        );
+            currentHealth.Value - damage);
 
         Debug.Log(
             $"{gameObject.name}: " +
-            $"{currentHealth.Value}/{maxHealth} HP"
-        );
+            $"{currentHealth.Value}/{maxHealth} HP");
 
         if (currentHealth.Value <= 0f)
-            Die();
+            Die(attackerClientId);
     }
 
-    private void Die()
+    private void Die(ulong attackerClientId)
     {
         if (!IsServer || isDead.Value)
             return;
@@ -74,14 +74,67 @@ public class CoOpZombieHealth : NetworkBehaviour
         if (WaveManager.Instance != null)
         {
             WaveManager.Instance.RegisterCoOpZombieKilled(
-                killReward
-            );
+                killReward);
         }
 
         Debug.Log(
-            $"{gameObject.name} eliminated. Reward: {killReward}"
-        );
+            $"{gameObject.name} eliminated by client " +
+            $"{attackerClientId}. Reward: {killReward}");
+
+        // Reward only the player who delivered the killing shot.
+        ClientRpcParams target = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new ulong[] { attackerClientId }
+            }
+        };
+
+        GiveKillerRewardClientRpc(
+            healthReward,
+            ammoReward,
+            target);
 
         NetworkObject.Despawn(true);
+    }
+
+    [ClientRpc]
+    private void GiveKillerRewardClientRpc(
+        float healthAmount,
+        int ammoAmount,
+        ClientRpcParams clientRpcParams = default)
+    {
+        // This RPC is sent only to the client who got the kill.
+        CoOpPistolRaycast pistol =
+            CoOpPistolRaycast.LocalInstance;
+
+        if (pistol != null)
+        {
+            pistol.AddAmmoReward(ammoAmount);
+        }
+
+        PlayerHealth[] players =
+            FindObjectsByType<PlayerHealth>(
+                FindObjectsSortMode.None);
+
+        foreach (PlayerHealth player in players)
+        {
+            if (player == null)
+                continue;
+
+            NetworkObject playerNetworkObject =
+                player.GetComponent<NetworkObject>();
+
+            if (playerNetworkObject != null &&
+                playerNetworkObject.IsOwner)
+            {
+                player.Heal(healthAmount);
+                break;
+            }
+        }
+
+        Debug.Log(
+            $"CO-OP Kill Reward: +{healthAmount} HP, " +
+            $"+{ammoAmount} reserve bullets.");
     }
 }

@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class ZombieHealth : MonoBehaviour
@@ -5,6 +6,10 @@ public class ZombieHealth : MonoBehaviour
     [Header("Zombie Stats")]
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private int killReward = 100;
+
+    [Header("Kill Rewards")]
+    [SerializeField] private float healthReward = 15f;
+    [SerializeField] private int ammoReward = 3;
 
     private float currentHealth;
     private bool isDead;
@@ -32,11 +37,11 @@ public class ZombieHealth : MonoBehaviour
         if (isDead || damage <= 0f)
             return;
 
-        currentHealth = Mathf.Max(0f, currentHealth - damage);
+        currentHealth = Mathf.Max(
+            0f, currentHealth - damage);
 
         Debug.Log(
-            $"{gameObject.name}: {currentHealth}/{maxHealth} HP"
-        );
+            $"{gameObject.name}: {currentHealth}/{maxHealth} HP");
 
         if (currentHealth <= 0f)
             Die();
@@ -50,9 +55,26 @@ public class ZombieHealth : MonoBehaviour
         isDead = true;
 
         if (WaveManager.Instance != null)
+        {
             WaveManager.Instance.RegisterZombieKilled(killReward);
+        }
 
-        Debug.Log($"{gameObject.name} eliminated. Reward: {killReward}");
+        if (PistolRaycast.Instance != null)
+        {
+            PistolRaycast.Instance.AddAmmoReward(ammoReward);
+        }
+
+        PlayerHealth playerHealth =
+            FindFirstObjectByType<PlayerHealth>();
+
+        if (playerHealth != null)
+        {
+            playerHealth.Heal(healthReward);
+        }
+
+        Debug.Log(
+            $"{gameObject.name} eliminated! " +
+            $"+{healthReward} HP, +{ammoReward} bullets.");
 
         Destroy(gameObject);
     }
